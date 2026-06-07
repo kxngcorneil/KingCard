@@ -31,6 +31,7 @@ export default function InputFileUpload({onFileSelect, label = "Upload Files", a
       variant="contained"
       tabIndex={-1}
       startIcon={<CloudUploadIcon />}
+      sx={{p: 2}}
     >
       {label}
       
