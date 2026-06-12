@@ -13,6 +13,7 @@ import {
   Box,
   AccordionActions,
   Divider,
+  Tooltip,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import InputFileUpload from "./components/buttons/InputFileUpload";
@@ -20,6 +21,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import Papa from "papaparse";
 import { useState } from "react";
 import { Random, nativeMath } from "random-js";
+
+<title>KingCard</title>
 
 interface Flashcard {
   term: string;
@@ -32,7 +35,10 @@ export default function Home() {
   const random = new Random(nativeMath);
   const [isRandomized, setIsRandomized] = useState<boolean>(false);
   const [topExpanded, setTopExpanded] = useState<boolean>(true);
+  const [isAutocomplete, setIsAutocomplete] = useState<boolean>(false);
   const [aboutExpanded, setAboutExpanded] = useState<boolean>(true);
+
+  const [isError, setIsError] = useState<boolean>(false);
 
   const [deck, setDeck] = useState<Flashcard[]>([]);
   const [activePool, setActivePool] = useState<Flashcard[]>([]); //for elimination
@@ -48,7 +54,6 @@ export default function Home() {
     if (!file) return;
 
     console.log("Processing deck...", file.name);
-
     Papa.parse(file, {
       header: false,
       skipEmptyLines: true,
@@ -75,27 +80,17 @@ export default function Home() {
     });
   };
 
-  const handleClearDeck = () => {
-    setDeck([]);
-    setCurrentIndex(0);
-    setUserInput("");
-    setIsFinished(false);
-  };
-
-  const handleCheckAnswer = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
+  const verifyAndAdvance = (currentInput: string) => {
     const currentCardList = sessionMode === "elimination" ? activePool : deck;
     const currentCard = currentCardList[currentIndex];
-    if (!currentCard) return;
+    if (!currentCard) return false;
 
-    const targetAnswer =
-      sessionMode === "reverse" ? currentCard.term : currentCard.definition;
+    const targetAnswer = sessionMode === "reverse" ? currentCard.term : currentCard.definition;
 
-    if (userInput.toLowerCase().trim() === targetAnswer.toLowerCase()) {
+    if (currentInput.toLowerCase().trim() === targetAnswer.toLowerCase()) {
       setUserInput("");
+      setIsError(false);
 
-      //elimination mode answr flo
       if (sessionMode === "elimination") {
         const updatedPool = activePool.filter((_, idx) => idx !== currentIndex);
         setActivePool(updatedPool);
@@ -103,31 +98,62 @@ export default function Home() {
         if (updatedPool.length === 0) {
           setIsFinished(true);
         } else {
-          setCurrentIndex(
-            currentIndex >= updatedPool.length ? 0 : currentIndex,
-          );
+          setCurrentIndex((prev) => (prev >= updatedPool.length ? 0 : prev));
         }
-      } else if (sessionMode === "reverse") {
-        if (currentIndex < deck.length - 1) {
-          setCurrentIndex(currentIndex + 1);
+      } else {
+        if (currentIndex < deck.length - 1){
+          setCurrentIndex((prev) => prev + 1);
         } else {
           setCurrentIndex(0);
         }
       }
+      return true;
+    }
+    return false;
+  };
 
-      //Free Mode
-      else {
-        if (currentIndex < deck.length - 1) {
-          setCurrentIndex(currentIndex + 1);
-        } else {
-          //Free mode loops
-          setCurrentIndex(0);
-        }
-      }
-    } else {
-      console.log("Wrong answer");
+  const handleCheckAnswer = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const isCorrect = verifyAndAdvance(userInput);
+
+    if (!isCorrect) {
+      setIsError(true);
     }
   };
+
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setUserInput(val);
+    setIsError(false);
+
+    if (isAutocomplete) {
+      const isCorrect = verifyAndAdvance(val);
+      
+      if (!isCorrect) {
+        const currentCardList = sessionMode === "elimination" ? activePool : deck;
+        const currentCard = currentCardList[currentIndex];
+        const targetAnswer = sessionMode === "reverse" ? currentCard?.term : currentCard?.definition;
+        
+        if (targetAnswer && val.length >= targetAnswer.length) {
+          setIsError(true);
+        }
+      }
+    }
+  };
+
+  const handleClearDeck = () => {
+    setDeck([]);
+    setCurrentIndex(0);
+    setActivePool([]);
+    setUserInput("");
+    setIsFinished(false);
+    setIsError(false);
+  };
+
+
+
+
 
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
@@ -272,6 +298,8 @@ export default function Home() {
                       </Typography>
                     </Button>
 
+           
+
                     <Button
                       fullWidth
                       variant={
@@ -301,41 +329,52 @@ export default function Home() {
                 </>
                 <Box sx={{ width: "100%", maxWidth: 600, mt: 1 }}>
                   <Typography
-                    variant="subtitle1"
+                    variant="caption"
                     sx={{
                       mb: 1,
+                      display: 'block',
                       textAlign: "left",
                       fontWeight: "bold",
-                      color: "#aaa",
+                      color: "text.secondary",
                     }}
                   >
-                    Card order
+                    Session Prefernces
                   </Typography>
-                  <Stack direction="row" spacing={2}>
+                  <Stack direction="row" spacing={1.5}>
+                   <Tooltip describeChild title="Decide if you go down the imported deck in order">
+ 
                     <Button
-                      fullWidth
-                      variant={!isRandomized ? "contained" : "outlined"}
-                      onClick={() => setIsRandomized(false)}
-                      sx={{
-                        py: 1.5,
-                        fontWeight: "bold",
-                        textTransform: "none",
-                      }}
-                    >
-                      Strict Order (Default)
-                    </Button>
-                    <Button
+                    
                       fullWidth
                       variant={isRandomized ? "contained" : "outlined"}
-                      onClick={() => setIsRandomized(true)}
+                      onClick={() => setIsRandomized(!isRandomized)}
+                      color={isRandomized ? "primary" : "inherit"}
                       sx={{
                         py: 1.5,
                         fontWeight: "bold",
                         textTransform: "none",
+                        fontSize: '0.85rem'
+      
                       }}
                     >
-                      Randomized
+                     {isRandomized ? "Shuffle Order" : "Strict Order"}
                     </Button>
+                      </Tooltip>
+                    <Tooltip describeChild title="If enabled automatically go to the next word when answer is right">
+                    <Button
+                      fullWidth
+                      variant={isAutocomplete ? "contained" : "outlined"}
+                      onClick={() => setIsAutocomplete(!isAutocomplete)}
+                      sx={{
+                        py: 1.5,
+                        fontWeight: "bold",
+                        textTransform: "none",
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      {isAutocomplete ? "Auto Advance: On" : "Auto Advance: Off"}
+                    </Button>
+                    </Tooltip>
                   </Stack>
                 </Box>
               </>
@@ -378,21 +417,22 @@ export default function Home() {
                       {sessionMode === "reverse"
                       ? deck[currentIndex]?.definition
                       : sessionMode === 'elimination'
-                      ? activePool[currentIndex]?. term
-                      : deck[currentIndex]?. term}
+                      ? activePool[currentIndex]?.term
+                      : deck[currentIndex]?.term}
                     </Typography>
 
                     <TextField
                       fullWidth
                       autoFocus
+                      error={isError}
                       label=""
                       placeholder="Type translation"
                       value={userInput}
-                      onChange={(e) => setUserInput(e.target.value)}
-                      variant="filled"
+                      onChange={handleInputChange}
+                      variant="outlined"
                       slotProps={{
                         htmlInput: {
-                          style: { textAlign: "center" },
+                          style: { textAlign: "center", backgroundColor: isError ? 'rgba(211, 47, 47, 0.08)' : undefined},
                           "aria-label": "answer-input",
                         },
                       }}
