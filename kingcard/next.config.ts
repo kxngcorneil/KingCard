@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: '/kingcard',
+  basePath: '/KingCard',
 };
 
 export default nextConfig;
