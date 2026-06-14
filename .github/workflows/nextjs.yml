@@ -25,13 +25,13 @@ concurrency:
   cancel-in-progress: false
 
 # ... (Keep your existing name: and on: triggers at the very top exactly as they are)
+# ... Keep your existing trigger rules at the very top as they are
 
 jobs:
-  # Build job
   build:
     runs-on: ubuntu-latest
     
-    # 🟢 FORCE ALL STEPS TO EXECUTE INSIDE YOUR SUBFOLDER
+    # 🟢 Force all steps to execute commands inside your subfolder
     defaults:
       run:
         working-directory: ./kingcard
@@ -40,12 +40,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🟢 Pass the exact path to your lockfile so setup-node is happy
+      # 🟢 Hardcode the manager properties to skip the failing detection phase entirely
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: ${{ steps.detect-package-manager.outputs.manager || 'npm' }}
+          cache: 'npm'
           cache-dependency-path: ./kingcard/package-lock.json
 
       - name: Setup Pages
@@ -62,7 +62,6 @@ jobs:
         with:
           path: ./kingcard/out
 
-  # Deployment job
   deploy:
     environment:
       name: github-pages
@@ -72,4 +71,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
