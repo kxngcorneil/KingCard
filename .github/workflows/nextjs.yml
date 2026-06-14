@@ -1,7 +1,4 @@
 # Sample workflow for building and deploying a Next.js site to GitHub Pages
-#
-# To get started with Next.js see: https://nextjs.org/docs/getting-started
-#
 name: Deploy Next.js site to Pages
 
 on:
@@ -18,20 +15,14 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Allow only one concurrent deployment
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
-# ... (Keep your existing name: and on: triggers at the very top exactly as they are)
-# ... Keep your existing trigger rules at the very top as they are
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    # 🟢 Force all steps to execute commands inside your subfolder
     defaults:
       run:
         working-directory: ./kingcard
@@ -40,7 +31,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 🟢 Hardcode the manager properties to skip the failing detection phase entirely
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -60,7 +50,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./kingcard/out
+          # 🟢 Fixed: Path is simply ./out because working-directory handles /kingcard
+          path: ./out
 
   deploy:
     environment:
